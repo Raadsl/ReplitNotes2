@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <link href="{{ url_for('static', filename='style.css' ) }}" rel="stylesheet" type="text/css" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/@replit/extensions@1.7.1/dist/index.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+  <script type='module'>
+    try {
+       await replit.init({ permissions: []})
+       async function setTheme() {
+        await replit.themes.getCurrentTheme().then(theme => {
+                for (const value in theme.values.global) {
+                    if (!value.startsWith('_')) {
+                        const cssVariableName = '--' + value.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)
+                        document.documentElement.style.setProperty(cssVariableName, theme.values.global[value])
+                    }
+                }
+            })
+         await replit.messages.showNotice("Theme updated successfully for ReplNotes", 2000)
+        }
+        await setTheme()
+        await replit.themes.onThemeChange(setTheme)
+    } catch(err) {
+      console.error(err)
+      document.body.innerHTML = "Not opened as extension"
+    }
+    async function getUserSlug() {
+    const currentUser = await replit.data.currentUser();
+    const currentRepl = await replit.data.currentRepl();
+    $("#slughere").text(currentRepl.repl.slug)
+    return `${currentUser.user.username}/${currentRepl.repl.slug}`;
+}
+
+(async () => {
+  function updateNotes() {
+    socket.emit('get_notes', { user_slug });
+    setTimeout(updateNotes, 1672);
+
+  }
+    const user_slug = await getUserSlug();
+
+    const socket = io("https://replitnotes-backend.raadsel.repl.co"); // not really secure yet so don't abuse pleas
+
+    socket.on('connected', function(data) {
+      console.log(data.data);
+      console.log("[ReplNotes] V1")
+      replit.messages.showConfirm("ReplNotes initialized, V1", 2321)
+    });
+  socket.on('connect_error', function(error) {
+    console.error('Error connecting to server:', error);
+    replit.messages.showNotice("The server to store your notes appears to be down. Please wait a minute and try again. ("+error+")", 11100)
+   
+  });
+
+$("#note-form").submit(function(event) {
+    event.preventDefault();
+    const note = $("#note").val();
+    $("#note").val('')
+    socket.emit('store_note', { user_slug, note });
+});
+
+
+socket.on('note_stored', function(data) {
+  replit.messages.showConfirm(data.message, 2321)
+  
+  updateNotes()
+});
+let firstime=true
+socket.on('notes_fetched', function(notes) {
+    const notesList = $("#notes-list");
+    notesList.empty();
+    if(firstime && notes.length == 0) {
+      firstime = false;
+      replit.messages.showNotice("Thanks for installing this extension! \nReplNotes successfully initialized for the first time on this Repl! Click on the text of a note to mark it as done, or press the delete button to delete it.", 7000)
+    }
+    notes.forEach(function(note) {
+        const listItem = $('<li></li>');
+        const noteText = $('<span class="note-text" data-id="' + note.id + '" data-done="' + note.done + '">' + note.note + '</span>');
+
+        if (note.done) {
+            noteText.css('text-decoration', 'line-through');
+            noteText.data('done', 'true');
+        } else {
+            noteText.data('done', 'false');
+        }
+        listItem.append(noteText);
+        listItem.append('<button class="delete-note align-middle" data-id="' + note.id + '">Delete</button>');
+        notesList.append(listItem);
+    });
+});
+
+ $("#notes-list").on('click', '.note-text', function() {
+    const noteId = $(this).data('id');
+    const isDone = $(this).data('done') === 'true'; 
+    socket.emit('mark_note', { user_slug: user_slug, note_id: noteId, is_done: !isDone });
+    socket.emit('get_notes', { user_slug });
+});
+  
+  $("#notes-list").on('click', '.delete-note', function() {
+      const noteId = $(this).data('id');
+      socket.emit('delete_note', { user_slug: user_slug, note_id: noteId });
+      replit.messages.showError("Note deleted", 800)
+      socket.emit('get_notes', { user_slug });
+  });
+
+  
+  updateNotes()
+})();
+    </script>
+</head>
+<body>
+  <div class="heading-container">
+    <div class="heading">
+      <h1 class="main-heading">ReplNotes</h1>
+      <p>Notes for <span id="slughere"></span></p>
+    </div>
+  </div>
+  <section class="content-container">
+    <form id="note-form">
+      <div>
+        <label for="note">Note:</label>
+        <input type="text" id="note" name="note" required>
+      </div>
+      <div>
+        <button class="btn btn-primary" type="submit">Store Note</button>
+      </div>
+    </form>
+    <hr>
+    <ul id="notes-list" class="list-container"></ul>
+  </section>
+</body>
+</html>
