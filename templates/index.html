@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notes App</title>
-    <link href="{{ url_for('static', filename='style.css' ) }}" rel="stylesheet" type="text/css" />
+    <link href="style.css" rel="stylesheet" type="text/css" />
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/@replit/extensions@1.7.1/dist/index.global.js"></script>
@@ -30,11 +30,15 @@
       document.body.innerHTML = "Not opened as extension"
     }
     async function getUserSlug() {
-    const currentUser = await replit.data.currentUser();
-    const currentRepl = await replit.data.currentRepl();
-    $("#slughere").text(currentRepl.repl.slug)
-    return `${currentUser.user.username}/${currentRepl.repl.slug}`;
-}
+        const currentUser = await replit.data.currentUser();
+        const currentRepl = await replit.data.currentRepl();
+        $("#slughere").text(currentRepl.repl.slug)
+        return `${currentUser.user.username}/${currentRepl.repl.slug}`;
+    }
+    async function getUser() {
+      const currentUser = await replit.data.currentUser();
+      return `${currentUser.user.username}`;
+    }
 
 (async () => {
   function updateNotes() {
@@ -43,7 +47,7 @@
 
   }
     const user_slug = await getUserSlug();
-
+    const user = await getUser();
     const socket = io("https://replitnotes-backend.raadsel.repl.co"); // not really secure yet so don't abuse pleas
 
     socket.on('connected', function(data) {
@@ -76,21 +80,23 @@ socket.on('notes_fetched', function(notes) {
     notesList.empty();
     if(firstime && notes.length == 0) {
       firstime = false;
-      replit.messages.showNotice("Thanks for installing this extension! \nReplNotes successfully initialized for the first time on this Repl! Click on the text of a note to mark it as done, or press the delete button to delete it.", 7000)
+      replit.messages.showNotice("Thanks for installing this extension! \nReplNotes successfully initialized for the first time on this Repl! Click on the text of a note to mark it as done, or press the delete button to delete it. You can also right click a note to edit it!", 7000)
     }
-    notes.forEach(function(note) {
+    notes.forEach(function (note) {
         const listItem = $('<li></li>');
         const noteText = $('<span class="note-text" data-id="' + note.id + '" data-done="' + note.done + '">' + note.note + '</span>');
-
-        if (note.done) {
-            noteText.css('text-decoration', 'line-through');
-            noteText.data('done', 'true');
-        } else {
-            noteText.data('done', 'false');
-        }
+    
+        // ...
+    
         listItem.append(noteText);
         listItem.append('<button class="delete-note align-middle" data-id="' + note.id + '">Delete</button>');
         notesList.append(listItem);
+    
+        // Add the context menu event listener for each noteText
+        noteText.on("contextmenu", function (e) {
+            e.preventDefault();
+            handleNoteTextRightClick(e, $(this));
+        });
     });
 });
 
@@ -107,17 +113,208 @@ socket.on('notes_fetched', function(notes) {
       replit.messages.showError("Note deleted", 800)
       socket.emit('get_notes', { user_slug });
   });
+function handleNoteTextRightClick(event, noteText) {
+  event.preventDefault();
+  const contextMenu = document.getElementById("context-menu");
+  contextMenu.style.display = "block";
+  contextMenu.style.left = event.pageX + "px";
+  contextMenu.style.top = event.pageY + "px";
+  contextMenu.style.zIndex = 1000;
+  contextMenu.querySelector("#edit-note").onclick = () => {
+    editNote(noteText);
+    contextMenu.style.display = "none";
+  };
+  document.addEventListener("click", () => {
+    contextMenu.style.display = "none";
+  });
+}
 
+// Add this function to handle the note editing
+function editNote(noteText) {
+  const noteId = noteText.data("id");
+  const currentText = noteText.text();
+  const newText = prompt("Edit note:", currentText);
+  if (newText && newText !== currentText) {
+    socket.emit("edit_note", { user_slug: user_slug, note_id: noteId, new_text: newText });
+    socket.emit("get_notes", { user_slug });
+  }
+}
+
+
+// Add a new event listener for the 'note_edited' event
+socket.on("note_edited", function (data) {
+  replit.messages.showConfirm(data.message, 2321);
+  updateNotes();
+});
   
-  updateNotes()
+updateNotes()
+
+// snippets  //
+function handleSnippetTitleRightClick(event, snippetTitle) {
+  event.preventDefault();
+  const contextMenu = document.getElementById("context-menu");
+  contextMenu.style.display = "block";
+  contextMenu.style.left = event.pageX + "px";
+  contextMenu.style.top = event.pageY + "px";
+  contextMenu.style.zIndex = 1000;
+  contextMenu.querySelector("#edit-note").onclick = () => {
+    editSnippet(snippetTitle);
+    contextMenu.style.display = "none";
+  };
+  document.addEventListener("click", () => {
+    contextMenu.style.display = "none";
+  });
+}
+
+function handleSnippetCodeRightClick(event, snippetCode) {
+  event.preventDefault();
+  const contextMenu = document.getElementById("context-menu");
+  contextMenu.style.display = "block";
+  contextMenu.style.left = event.pageX + "px";
+  contextMenu.style.top = event.pageY + "px";
+  contextMenu.style.zIndex = 1000;
+  contextMenu.querySelector("#edit-note").onclick = () => {
+    editSnippetContent(snippetCode);
+    contextMenu.style.display = "none";
+  };
+  document.addEventListener("click", () => {
+    contextMenu.style.display = "none";
+  });
+}
+
+function editSnippet(snippetTitle) {
+  const snippetId = snippetTitle.data("id");
+  const currentTitle = snippetTitle.text();
+  const newTitle = prompt("Edit snippet title:", currentTitle);
+  if (newTitle && newTitle !== currentTitle) {
+    socket.emit("edit_snippet_title", { user_slug: user_slug, snippet_id: snippetId, new_title: newTitle });
+    socket.emit("get_snippets", { user_slug });
+  }
+}
+
+function editSnippetContent(snippetCode) {
+  const snippetId = snippetCode.data("id");
+  const currentCode = snippetCode.text();
+
+  // Show the modal
+  const editSnippetModal = $("#edit-snippet-modal");
+  editSnippetModal.removeClass("hidden");
+
+  // Set the current code in the textarea
+  const editSnippetTextarea = $("#edit-snippet-textarea");
+  editSnippetTextarea.val(currentCode);
+
+  // Remove previous event handlers
+  $("#edit-snippet-save-btn").off("click");
+  $("#edit-snippet-cancel-btn").off("click");
+
+  // Handle save button click
+  $("#edit-snippet-save-btn").on("click", function () {
+    const newCode = editSnippetTextarea.val();
+    if (newCode && newCode !== currentCode) {
+      socket.emit("edit_snippet_code", { user: user, snippet_id: snippetId, new_code: newCode });
+      socket.emit("get_snippets", { user_slug });
+    }
+    // Hide the modal
+    editSnippetModal.addClass("hidden");
+  });
+
+  // Handle cancel button click
+  $("#edit-snippet-cancel-btn").on("click", function () {
+    // Hide the modal
+    editSnippetModal.addClass("hidden");
+  });
+}
+  
+$("#snippet-form").submit(function(event) {
+  event.preventDefault();
+  const title = $("#snippet-title").val();
+  const code = $("#snippet-code").val();
+  $("#snippet-title").val('');
+  $("#snippet-code").val('');
+  socket.emit('store_snippet', { user, title, code });
+});
+
+socket.on('snippet_stored', function(data) {
+  replit.messages.showConfirm(data.message, 2321)
+  updateSnippets()
+});
+
+socket.on('snippets_fetched', function(snippets) {
+  const snippetsList = $("#snippets-list");
+  snippetsList.empty();
+  snippets.forEach(function(snippet) {
+    const listItem = $('<li></li>');
+    const snippetTitle = $('<span class="snippet-title" data-id="' + snippet.id + '">' + snippet.title + '</span>');
+    const snippetCode = $('<pre class="snippet-code" data-id="' + snippet.id + '">' + snippet.code + '</pre>');
+    snippetTitle.on("contextmenu", function (e) {
+      e.preventDefault();
+      handleSnippetTitleRightClick(e, $(this));
+    });
+    snippetCode.on("contextmenu", function (e) {
+      e.preventDefault();
+      handleSnippetCodeRightClick(e, $(this));
+    });
+    listItem.append(snippetTitle);
+    listItem.append(snippetCode);
+    listItem.append('<button class="delete-snippet align-middle" data-id="' + snippet.id + '">Delete</button>');
+    snippetsList.append(listItem);
+  });
+});
+
+$("#snippets-list").on('click', '.snippet-code', function() {
+  const code = $(this).text();
+  const snippetId = $(this).data('id');
+  navigator.clipboard.writeText(code).then(() => {
+    replit.messages.showConfirm('Snippet copied to clipboard', 2321);
+    socket.emit('update_snippet_last_used', { user: user, snippet_id: snippetId }); 
+  });
+});
+
+$("#snippets-list").on('click', '.delete-snippet', function() {
+  const snippetId = $(this).data('id');
+  socket.emit('delete_snippet', { user: user, snippet_id: snippetId });
+  replit.messages.showError("Snippet deleted", 800)
+  socket.emit('get_snippets', { user });
+});
+
+socket.on("snippet_title_edited", function (data) {
+  replit.messages.showConfirm(data.message, 2321);
+  updateSnippets();
+});
+
+function updateSnippets() {
+  socket.emit('get_snippets', { user });
+  setTimeout(updateSnippets, 1672);
+}
+$("#mode-switch-btn").on('click', function() {
+  const currentMode = $(this).text();
+  if (currentMode === 'Switch to Snippet Manager') {
+    $(this).text('Switch to Notes');
+    $("#mode").text("Snippets")
+    $("#note-form").addClass('hidden');
+    $("#notes-list").addClass('hidden');
+    $("#snippet-form").removeClass('hidden');
+    $("#snippets-list").removeClass('hidden');
+  } else {
+    $(this).text('Switch to Snippet Manager');
+    $("#mode").text("Notes")
+    $("#note-form").removeClass('hidden');
+    $("#notes-list").removeClass('hidden');
+    $("#snippet-form").addClass('hidden');
+    $("#snippets-list").addClass('hidden');
+  }
+});
+updateSnippets();
 })();
     </script>
 </head>
 <body>
+  <button id="mode-switch-btn" class="btn btn-secondary">Switch to Snippet Manager</button>
   <div class="heading-container">
     <div class="heading">
       <h1 class="main-heading">ReplNotes</h1>
-      <p>Notes for <span id="slughere"></span></p>
+      <p><span id='mode'>Notes</span> for <span id="slughere"></span></p>
     </div>
   </div>
   <section class="content-container">
@@ -130,8 +327,35 @@ socket.on('notes_fetched', function(notes) {
         <button class="btn btn-primary" type="submit">Store Note</button>
       </div>
     </form>
+    <form id="snippet-form" class="hidden">
+      <div>
+        <label for="snippet-title">Title:</label>
+        <input style='width:100%' type="text" id="snippet-title" name="snippet-title" required>
+      </div>
+      <div>
+        <label for="snippet-code">Code:</label>
+        <textarea style='width:100%' id="snippet-code" name="snippet-code" rows="4" required></textarea>
+      </div>
+      <div>
+        <button class="btn btn-primary" type="submit">Store Snippet</button>
+      </div>
+    </form>
     <hr>
     <ul id="notes-list" class="list-container"></ul>
+    <ul id="snippets-list" class="list-container hidden"></ul>
   </section>
+  <div id="context-menu" class="context-menu">
+  <ul>
+    <li id="edit-note">Edit Note</li>
+  </ul>
+</div>
+  <div id="edit-snippet-modal" class="edit-snippet-modal hidden">
+  <div class="edit-snippet-modal-content">
+    <h2>Edit Snippet Content</h2>
+    <textarea id="edit-snippet-textarea" rows="10" cols="50"></textarea>
+    <button id="edit-snippet-save-btn">Save</button>
+    <button id="edit-snippet-cancel-btn">Cancel</button>
+  </div>
+</div>
 </body>
 </html>

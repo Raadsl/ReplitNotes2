@@ -27,10 +27,13 @@ class Note(db.Model):
     user_slug = db.Column(db.String(80), nullable=False)
     note_content = db.Column(db.String, nullable=False)
     done = db.Column(db.Boolean, default=False)
-
-with app.app_context():
-    db.create_all()
-
+  
+class Snippet(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_slug = db.Column(db.String(80), nullable=False)
+    title = db.Column(db.String, nullable=False)
+    code = db.Column(db.String, nullable=False)
+    last_used = db.Column(db.DateTime, default=datetime.utcnow) 
 
 @app.route('/')
 def index():
@@ -68,7 +71,6 @@ def handle_get_notes(data):
         hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
         notes = Note.query.filter_by(user_slug=hashed_slug).all()
 
-        # Check if this is the first time fetching notes for the user slug
        
         notes_list = [{
             'id': note.id,
@@ -116,8 +118,117 @@ def handle_mark_note(data):
     else:
         emit('error_occurred', {'message': 'Invalid input'})
 
+@socketio.on('edit_note')
+def handle_edit_note(data):
+    note_id = data.get('note_id')
+    new_text = data.get('new_text')
+    user_slug = data.get('user_slug')
+
+    if note_id and new_text and user_slug:
+        hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+        encoded_new_text = base64.b64encode(new_text.encode('utf-8')).decode('utf-8') 
+        note = Note.query.filter_by(id=note_id, user_slug=hashed_slug).first()
+
+        if note:
+            note.note_content = encoded_new_text
+            db.session.commit()
+            emit('note_edited', {'message': 'Note has been edited'})
+        else:
+            emit('error_occurred', {'message': f'Note with ID {note_id} not found or not owned by the user'})
+    else:
+        emit('error_occurred', {'message': 'Invalid input'})
+
+#snippets  
+@socketio.on('store_snippet')
+def handle_store_snippet(data):
+    user_slug = data.get('user')
+    title = data.get('title')
+    code = data.get('code')
+
+    if user_slug and title and code:
+        hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+        new_snippet = Snippet(user_slug=hashed_slug, title=title, code=code)
+        db.session.add(new_snippet)
+        db.session.commit()
+        emit('snippet_stored', {'message': 'Snippet stored successfully'})
+    else:
+        emit('error_occurred', {'message': 'Invalid input'})
+
+@socketio.on('get_snippets')
+def handle_get_snippets(data):
+    user_slug = data.get('user')
+
+    if user_slug:
+        hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+        snippets = Snippet.query.filter_by(user_slug=hashed_slug).order_by(Snippet.last_used.desc()).all()  # Update this line
+
+        snippets_list = [{
+            'id': snippet.id,
+            'title': snippet.title,
+            'code': snippet.code
+        } for snippet in snippets]
+
+        emit('snippets_fetched', snippets_list)
+    else:
+        emit('error_occurred', {'message': 'Invalid input'})
+
+@socketio.on('delete_snippet')
+def handle_delete_snippet(data):
+    snippet_id = data.get('snippet_id')
+    user_slug = data.get('user')
+
+    if snippet_id and user_slug:
+        hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+        snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
+
+        if snippet:
+            db.session.delete(snippet)
+            db.session.commit()
+            emit('snippet_deleted', {'message': f'Snippet with ID {snippet_id} has been deleted'})
+        else:
+            emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
+    else:
+        emit('error_occurred', {'message': 'Invalid input'})
+
+@socketio.on('edit_snippet_code')
+def handle_edit_snippet_code(data):
+    snippet_id = data.get('snippet_id')
+    new_code = data.get('new_code')
+    user_slug = data.get('user')
+    if snippet_id and new_code and user_slug:
+        hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+        snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
+
+        if snippet:
+            snippet.code = new_code
+            db.session.commit()
+            emit('snippet_code_edited', {'message': 'Snippet content has been edited'})
+        else:
+            emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
+    else:
+        emit('error_occurred', {'message': 'Invalid input'})
+
+@socketio.on('update_snippet_last_used')
+def handle_update_snippet_last_used(data):
+    snippet_id = data.get('snippet_id')
+    user_slug = data.get('user')
+
+    if snippet_id and user_slug:
+        hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+        snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
+
+        if snippet:
+            snippet.last_used = datetime.utcnow()
+            db.session.commit()
+            emit('snippet_last_used_updated', {'message': 'Snippet last used updated'})
+        else:
+            emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
+    else:
+        emit('error_occurred', {'message': 'Invalid input'})
 
 if __name__ == "__main__":
+  with app.app_context():
+    db.create_all()
   now = datetime.now()
   current_time = now.strftime("%H:%M:%S")
   print(f"Running! Started at {current_time}")
