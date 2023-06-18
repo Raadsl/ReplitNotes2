@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, send_file
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import base64, os
 from flask_socketio import SocketIO, emit
@@ -9,10 +10,13 @@ import hashlib
 
 
 app = Flask(__name__)
+CORS(app, origins=["https://replit.com"])
+
 app.config['SECRET_KEY'] = os.environ["SECRET_KEY"]
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///notes.db'
 db = SQLAlchemy(app)
 socketio = SocketIO(app, cors_allowed_origins="*", allow_unsafe_werkzeug=True)
+
 
 def hash_user_slug(user_slug, salt):
     hasher = hashlib.sha256()
