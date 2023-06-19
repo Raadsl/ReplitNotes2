@@ -4,8 +4,8 @@
     "version": "0",
     "tags": ["utility", "notes", "todo", "QOL", "Raadsel", "tasks", "todo extension 2"],
     "icon": "static/icons/icon.png",
-    "website": "https://replit.com/@Raadsel/ReplitNotes?v=1",
-    "longDescription": "Keep track with what you still need to do! (probably a lot). ReplitNotes is a sequel to the Todo Extension from me. It has user-wide code snippets, a nicer UI, works better, and doesn't create files in your repl. The data gets stored outside of your repl. That's wayy better before, and doesn't take up any bytes for you!\n\nPlease don't store sensitive information since it's not 100% private. It does gets hashed so I don't know who made the note.",
+    "website": "https://github.com/Raadsl/ReplitNotes",
+    "longDescription": "Keep track with what you still need to do! (probably a lot). ReplitNotes is a sequel to the Todo Extension from me. It has user-wide code snippets, a nicer UI, works better, and doesn't create files in your repl. The data gets stored outside of your repl. That's wayy better before, and doesn't take up any bytes for you!\n\nPlease don't store sensitive information since it's not 100% private. Your repl slug does gets hashed so I don't know who made the note.",
   "tools": [
 	  {"name": "ReplNotes", "handler":"/", "icon":"static/icons/icon.svg"}
   ],

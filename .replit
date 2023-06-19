@@ -110,5 +110,4 @@ run = ["sh", "-c", "python3 main.py"]
 [extension]
 isExtension = true
 outputDirectory = "./"
-buildCommand = ""
-extensionID = "e4070c8d-d9e9-4936-b021-1364a5f5949b"
+extensionID = "2c9fb955-6a1f-4f11-a425-64d60159a2a5"
