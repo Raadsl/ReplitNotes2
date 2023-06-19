@@ -894,7 +894,7 @@ table tr:nth-child(even) {
 
 code {
   font-family: 'IBM Plex Mono', sans-serif;
-  font-size: 16px;
+  font-size: 8px;
   background-color: var(--background-default);
   color: var(--foreground-dimmer);
   padding: 4px;
@@ -1152,12 +1152,15 @@ iframe {
         }
         
         .delete-note {
-            background-color: var(--accent-negative-default);
+            background-color: var(--accent-negative-dimmer);
             float: right;
         }
+        .delete-snippet {
+          background-color: var(--accent-negative-dimmer);
+        }
         
-        .delete-note:hover {
-            background-color: var(--accent-negative-stronger);
+        .delete-note:hover, .delete-snippet:hover {
+            background-color: var(--accent-negative-default);
         }
 .delete-note {
   position: relative;

@@ -1,4 +1,3 @@
-<!--Made by @Raadsel-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +10,6 @@
     <script src="https://unpkg.com/@replit/extensions/dist/index.global.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
   <script type='module'>
-    let firstTheme = true
     try {
        await replit.init({ permissions: []})
        async function setTheme() {
@@ -23,14 +21,10 @@
                     }
                 }
             })
-         if(!firstTheme) {
-          await replit.messages.showNotice("Theme updated successfully for ReplNotes", 2000)
-         }
-         firstTheme = false
+         await replit.messages.showNotice("Theme updated successfully for ReplNotes", 2000)
         }
         await setTheme()
         await replit.themes.onThemeChange(setTheme)
-        
     } catch(err) {
       console.error(err)
       document.body.innerHTML = "Not opened as extension"
@@ -90,8 +84,9 @@ socket.on('notes_fetched', function(notes) {
     }
     notes.forEach(function (note) {
         const listItem = $('<li></li>');
-        const noteText = $('<span class="note-text" data-id="' + note.id + '" data-done="' + note.done + '"></span>');
-        noteText.text(note.note);
+        const noteText = $('<span class="note-text" data-id="' + note.id + '" data-done="' + note.done + '">' + note.note + '</span>');
+    
+        // ...
     
         listItem.append(noteText);
         listItem.append('<button class="delete-note align-middle" data-id="' + note.id + '">Delete</button>');
@@ -250,10 +245,8 @@ socket.on('snippets_fetched', function(snippets) {
   snippetsList.empty();
   snippets.forEach(function(snippet) {
     const listItem = $('<li></li>');
-    const snippetTitle = $('<span class="snippet-title" data-id="' + snippet.id + '"></span>');
-    snippetTitle.text(snippet.title);
-    const snippetCode = $('<pre class="snippet-code" data-id="' + snippet.id + '"></pre>');
-    snippetCode.text(snippet.code);
+    const snippetTitle = $('<span class="snippet-title" data-id="' + snippet.id + '">' + snippet.title + '</span>');
+    const snippetCode = $('<pre class="snippet-code" data-id="' + snippet.id + '">' + snippet.code + '</pre>');
     snippetTitle.on("contextmenu", function (e) {
       e.preventDefault();
       handleSnippetTitleRightClick(e, $(this));
@@ -265,24 +258,16 @@ socket.on('snippets_fetched', function(snippets) {
     listItem.append(snippetTitle);
     listItem.append(snippetCode);
     listItem.append('<button class="delete-snippet align-middle" data-id="' + snippet.id + '">Delete</button>');
-    listItem.append('<button class="toggle-pin-snippet align-middle" data-id="' + snippet.id + '">' + (snippet.pinned ? 'Unpin' : 'Pin') + '</button>'); // Add the pin button
     snippetsList.append(listItem);
   });
 });
-  
-$("#snippets-list").on('click', '.toggle-pin-snippet', function() {
-  const snippetId = $(this).data('id');
-  socket.emit('toggle_pin_snippet', { user: user, snippet_id: snippetId });
-  socket.emit('get_snippets', { user });
-});
-  
+
 $("#snippets-list").on('click', '.snippet-code', function() {
   const code = $(this).text();
   const snippetId = $(this).data('id');
   navigator.clipboard.writeText(code).then(() => {
-    replit.messages.showConfirm('Snippet copied', 2321);
+    replit.messages.showConfirm('Snippet copied to clipboard', 2321);
     socket.emit('update_snippet_last_used', { user: user, snippet_id: snippetId }); 
-    updateSnippets()
   });
 });
 
@@ -298,11 +283,6 @@ socket.on("snippet_title_edited", function (data) {
   updateSnippets();
 });
 
-socket.on("snippet_pin_toggled", function (data) {
-                replit.messages.showConfirm(data.message, 2321);
-  socket.emit("get_snippets", { user_slug });
-});
-
 function updateSnippets() {
   socket.emit('get_snippets', { user });
   setTimeout(updateSnippets, 1672);
@@ -316,7 +296,6 @@ $("#mode-switch-btn").on('click', function() {
     $("#notes-list").addClass('hidden');
     $("#snippet-form").removeClass('hidden');
     $("#snippets-list").removeClass('hidden');
-    $("#snippet-search").removeClass('hidden');
   } else {
     $(this).text('Switch to Snippet Manager');
     $("#mode").text("Notes")
@@ -324,17 +303,10 @@ $("#mode-switch-btn").on('click', function() {
     $("#notes-list").removeClass('hidden');
     $("#snippet-form").addClass('hidden');
     $("#snippets-list").addClass('hidden');
-    $("#snippet-search").addClass('hidden');
   }
 });
 updateSnippets();
 })();
-
-// Add this event listener at the end of the script
-$("#snippet-search").on("input", function () {
-    socket.emit("get_notes", { user_slug });
-});
-
     </script>
 </head>
 <body>
@@ -349,7 +321,7 @@ $("#snippet-search").on("input", function () {
     <form id="note-form">
       <div>
         <label for="note">Note:</label>
-        <input maxlength="1000" type="text" id="note" title="Don't share sensitive information" name="note" required>
+        <input type="text" id="note" name="note" required>
       </div>
       <div>
         <button class="btn btn-primary" type="submit">Store Note</button>
@@ -358,20 +330,17 @@ $("#snippet-search").on("input", function () {
     <form id="snippet-form" class="hidden">
       <div>
         <label for="snippet-title">Title:</label>
-        <input style='width:100%' type="text" id="snippet-title" name="snippet-title" maxlength="120" required>
+        <input style='width:100%' type="text" id="snippet-title" name="snippet-title" required>
       </div>
       <div>
         <label for="snippet-code">Code:</label>
-        <textarea title="Don't share sensitive information" name="note" style='width:100%' id="snippet-code" name="snippet-code" rows="4" maxlength="7000" required></textarea>
+        <textarea style='width:100%' id="snippet-code" name="snippet-code" rows="4" required></textarea>
       </div>
       <div>
         <button class="btn btn-primary" type="submit">Store Snippet</button>
       </div>
     </form>
     <hr>
-    <div>
-        <input type="text" id="snippet-search" placeholder="Search snippets... (WIP)" />
-    </div>
     <ul id="notes-list" class="list-container"></ul>
     <ul id="snippets-list" class="list-container hidden"></ul>
   </section>
@@ -383,32 +352,10 @@ $("#snippet-search").on("input", function () {
   <div id="edit-snippet-modal" class="edit-snippet-modal hidden">
   <div class="edit-snippet-modal-content">
     <h2>Edit Snippet Content</h2>
-    <p>Works best when extension is opened with a big pane.</p>
     <textarea id="edit-snippet-textarea" rows="10" cols="50"></textarea>
     <button id="edit-snippet-save-btn">Save</button>
     <button id="edit-snippet-cancel-btn">Cancel</button>
   </div>
 </div>
 </body>
-  <script>
-    
-function filterSnippets() {
-  const searchInput = $("#snippet-search");
-  const searchText = searchInput.val().toLowerCase();
-
-  $(".snippet").each(function () {
-      const snippetTitle = $(this).find(".snippet-title").text().toLowerCase();
-      const snippetCode = $(this).find(".snippet-code").text().toLowerCase();
-      const searchFilter = $("#snippet-search").val().toLowerCase();
-
-      if (note.note.toLowerCase().includes(searchFilter)) {
-          $(this).show();
-      } else {
-          $(this).hide();
-      }
-  });
-}
-
-$("#snippet-search").on("input", filterSnippets);
-  </script>
 </html>

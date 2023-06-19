@@ -39,6 +39,7 @@ class Snippet(db.Model):
   title = db.Column(db.String, nullable=False)
   code = db.Column(db.String, nullable=False)
   last_used = db.Column(db.DateTime, default=datetime.utcnow) 
+  pinned = db.Column(db.Boolean, default=False)
 
 @app.route('/')
 def index():
@@ -161,21 +162,27 @@ def handle_store_snippet(data):
 
 @socketio.on('get_snippets')
 def handle_get_snippets(data):
-  user_slug = data.get('user')
+    user_slug = data.get('user')
 
-  if user_slug:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      snippets = Snippet.query.filter_by(user_slug=hashed_slug).order_by(Snippet.last_used.desc()).all()  # Update this line
+    if user_slug:
+        try:
+            hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+            # Order by pinned status first, then by last_used timestamp
+            snippets = Snippet.query.filter_by(user_slug=hashed_slug).order_by(Snippet.pinned.desc(), Snippet.last_used.desc()).all()
 
-      snippets_list = [{
-          'id': snippet.id,
-          'title': snippet.title,
-          'code': snippet.code
-      } for snippet in snippets]
+            snippets_list = [{
+                'id': snippet.id,
+                'title': snippet.title,
+                'code': snippet.code,
+                'pinned': snippet.pinned
+            } for snippet in snippets]
 
-      emit('snippets_fetched', snippets_list)
-  else:
-      emit('error_occurred', {'message': 'Invalid input'})
+            emit('snippets_fetched', snippets_list)
+        except Exception as e:
+            print(f"Error in get_snippets event handler: {e}")
+            emit('error_occurred', {'message': 'An internal error occurred'})
+    else:
+        emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('delete_snippet')
 def handle_delete_snippet(data):
@@ -230,6 +237,25 @@ def handle_update_snippet_last_used(data):
           emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
   else:
       emit('error_occurred', {'message': 'Invalid input'})
+
+@socketio.on('toggle_pin_snippet')
+def handle_toggle_pin_snippet(data):
+  snippet_id = data.get('snippet_id')
+  user_slug = data.get('user')
+
+  if snippet_id and user_slug:
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
+
+    if snippet:
+      snippet.pinned = not snippet.pinned
+      db.session.commit()
+      emit('snippet_pin_toggled', {'message': f'Snippet with ID {snippet_id} pin status has been toggled'})
+    else:
+      emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
+  else:
+    emit('error_occurred', {'message': 'Invalid input'})
+
 
 if __name__ == "__main__":
   with app.app_context():
