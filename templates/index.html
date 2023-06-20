@@ -32,7 +32,8 @@
         await replit.themes.onThemeChange(setTheme)
         
     } catch(err) {
-      console.error(err)
+        await replit.debug.error("Error with setting theme.", err);
+
       document.body.innerHTML = "Not opened as extension"
     }
     async function getUserSlug() {
@@ -109,7 +110,6 @@ socket.on('notes_fetched', function(notes) {
  $("#notes-list").on('click', '.note-text', function() {
   const noteId = $(this).data('id');
   const isDone = $(this).data('done');
-  console.log(isDone.toString())
   socket.emit('mark_note', { user_slug: user_slug, note_id: noteId, is_done: !isDone });
   replit.messages.showConfirm("Note updated", 700);
   socket.emit('get_notes', { user_slug });
@@ -378,7 +378,7 @@ $("#snippet-search").on("input", function () {
     </form>
     <hr>
     <div>
-        <input class='hidden' type="text" id="snippet-search" placeholder="Search snippets... (WIP)" />
+        <input class='hidden' type="text" id="snippet-search" placeholder="Search snippets..." />
     </div>
     <ul id="notes-list" class="list-container"></ul>
     <ul id="snippets-list" class="list-container hidden"></ul>
