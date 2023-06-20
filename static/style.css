@@ -1091,77 +1091,77 @@ iframe {
   color: var(--foreground-default);
 }
 
-        
-        h1 {
-            font-size: 2rem;
-            color: var(--foreground-dimmer);
-        }
 
-        #note-form {
-            background-color: var(--background-higher);
-            padding: 10px;
-            border-radius: 5px;
-        }
+h1 {
+  font-size: 2rem;
+  color: var(--foreground-dimmer);
+}
 
-        label {
-            font-weight: bold;
-            color: var(--foreground-dimmest);
-        }
+#note-form {
+  background-color: var(--background-higher);
+  padding: 10px;
+  border-radius: 5px;
+}
 
-        input[type="text"] {
-            width: 100%;
-            padding: 5px;
-            border: 2px solid var(--outline-default);
-            border-radius: 4px;
-        }
+label {
+  font-weight: bold;
+  color: var(--foreground-dimmest);
+}
 
-        button {
-            background-color: var(--accent-primary-default);
-            color: var(--white);
-            border: none;
-            padding: 8px 16px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
+input[type="text"] {
+  width: 100%;
+  padding: 5px;
+  border: 2px solid var(--outline-default);
+  border-radius: 4px;
+}
 
-        button:hover {
-            background-color: var(--accent-primary-stronger);
-        }
+button {
+  background-color: var(--accent-primary-default);
+  color: var(--white);
+  border: none;
+  padding: 8px 16px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 5px;
+}
 
-        #get-notes {
-            margin-top: 10px;
-        }
+button:hover {
+  background-color: var(--accent-primary-stronger);
+}
 
-        ul {
-            list-style-type: none;
-            padding: 1px;
-          
+#get-notes {
+  margin-top: 10px;
+}
 
-        }
+ul {
+  list-style-type: none;
+  padding: 1px;
 
-        li {
-            padding: 5px;
-            margin-bottom: 5px;
-            border: 1px solid var(--outline-dimmer);
-            border-radius: 5px;
-        }
-        
-        .delete-note {
-            background-color: var(--accent-negative-dimmer);
-            float: right;
-        }
-        .delete-snippet {
-          background-color: var(--accent-negative-dimmer);
-        }
-        
-        .delete-note:hover, .delete-snippet:hover {
-            background-color: var(--accent-negative-default);
-        }
+
+}
+
+li {
+  padding: 5px;
+  margin-bottom: 5px;
+  border: 1px solid var(--outline-dimmer);
+  border-radius: 5px;
+}
+
+.delete-note {
+  background-color: var(--accent-negative-dimmer);
+  float: right;
+}
+.delete-snippet {
+background-color: var(--accent-negative-dimmer);
+}
+
+.delete-note:hover, .delete-snippet:hover {
+  background-color: var(--accent-negative-default);
+}
 .delete-note {
   position: relative;
   top: -6px;
@@ -1172,7 +1172,7 @@ iframe {
 }
 
 .main-heading {
-  font-size: 60px;
+  font-size: 45px;
   font-weight: bold;
   font-family: 'IBM Plex Sans', sans-serif;
   color: var(--foreground-default);

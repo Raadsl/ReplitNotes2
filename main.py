@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, send_file
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import base64, os
@@ -10,7 +10,6 @@ import hashlib,time,shutil,glob
 from random import randint
 from cryptography.fernet import Fernet
 import threading
-
 
 
 app = Flask(__name__)
@@ -32,18 +31,15 @@ logger.addFilter(CustomLogFilter())
 socketio = SocketIO(app, cors_allowed_origins="*", allow_unsafe_werkzeug=True, max_http_buffer_size=1000000, logger=logger)
 FERNET_KEY = os.environ["FERNET_KEY"].encode('utf-8')
 
-def generate_fernet_key():
-    return Fernet.generate_key()
-
 def encrypt_data(data, key):
-    f = Fernet(key)
-    return f.encrypt(data.encode('utf-8'))
+  f = Fernet(key)
+  return f.encrypt(data.encode('utf-8'))
 
 def decrypt_data(data, key):
-    f = Fernet(key)
-    if not isinstance(data, bytes):
-        data = data.encode('utf-8')
-    return f.decrypt(data).decode('utf-8')
+  f = Fernet(key)
+  if not isinstance(data, bytes):
+      data = data.encode('utf-8')
+  return f.decrypt(data).decode('utf-8')
 
 def hash_user_slug(user_slug, salt):
   hasher = hashlib.sha256()
@@ -86,32 +82,32 @@ def handle_store_note(data):
   note = data.get('note')
 
   if user_slug and note:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      encrypted_note = encrypt_data(note, FERNET_KEY)
-      new_note = Note(user_slug=hashed_slug, note_content=encrypted_note)
-      db.session.add(new_note)
-      db.session.commit()
-      emit('note_stored', {'message': 'Note stored successfully'})
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    encrypted_note = encrypt_data(note, FERNET_KEY)
+    new_note = Note(user_slug=hashed_slug, note_content=encrypted_note)
+    db.session.add(new_note)
+    db.session.commit()
+    emit('note_stored', {'message': 'Note stored successfully'})
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('get_notes')
 def handle_get_notes(data):
   user_slug = data.get('user_slug')
   
   if user_slug:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      notes = Note.query.filter_by(user_slug=hashed_slug).all()
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    notes = Note.query.filter_by(user_slug=hashed_slug).all()
 
-     
-      notes_list = [{
-        'id': note.id,
-        'note': decrypt_data(note.note_content, FERNET_KEY),
-        'done': note.done
-      } for note in notes]
-      emit('notes_fetched', notes_list)
+   
+    notes_list = [{
+      'id': note.id,
+      'note': decrypt_data(note.note_content, FERNET_KEY),
+      'done': note.done
+    } for note in notes]
+    emit('notes_fetched', notes_list)
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('delete_note')
 def handle_delete_note(data):
@@ -119,17 +115,17 @@ def handle_delete_note(data):
   user_slug = data.get('user_slug')
 
   if note_id and user_slug:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      note = Note.query.filter_by(id=note_id, user_slug=hashed_slug).first()
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    note = Note.query.filter_by(id=note_id, user_slug=hashed_slug).first()
 
-      if note:
-          db.session.delete(note)
-          db.session.commit()
-          emit('note_deleted', {'message': f'Note with ID {note_id} has been deleted'})
-      else:
-          emit('error_occurred', {'message': f'Note with ID {note_id} not found or not owned by the user'})
+    if note:
+      db.session.delete(note)
+      db.session.commit()
+      emit('note_deleted', {'message': f'Note with ID {note_id} has been deleted'})
+    else:
+      emit('error_occurred', {'message': f'Note with ID {note_id} not found or not owned by the user'})
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('mark_note')
 def handle_mark_note(data):
@@ -156,18 +152,18 @@ def handle_edit_note(data):
   user_slug = data.get('user_slug')
 
   if note_id and new_text and user_slug:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      encoded_new_text = base64.b64encode(new_text.encode('utf-8')).decode('utf-8') 
-      note = Note.query.filter_by(id=note_id, user_slug=hashed_slug).first()
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    encoded_new_text = base64.b64encode(new_text.encode('utf-8')).decode('utf-8') 
+    note = Note.query.filter_by(id=note_id, user_slug=hashed_slug).first()
 
-      if note:
-          note.note_content = encoded_new_text
-          db.session.commit()
-          emit('note_edited', {'message': 'Note has been edited'})
-      else:
-          emit('error_occurred', {'message': f'Note with ID {note_id} not found or not owned by the user'})
+    if note:
+      note.note_content = encoded_new_text
+      db.session.commit()
+      emit('note_edited', {'message': 'Note has been edited'})
+    else:
+      emit('error_occurred', {'message': f'Note with ID {note_id} not found or not owned by the user'})
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 #snippets  
 @socketio.on('store_snippet')
@@ -177,38 +173,38 @@ def handle_store_snippet(data):
   code = data.get('code')
 
   if user_slug and title and code:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      encrypted_code = encrypt_data(code, FERNET_KEY)
-      new_snippet = Snippet(user_slug=hashed_slug, title=title, code=encrypted_code)
-      db.session.add(new_snippet)
-      db.session.commit()
-      emit('snippet_stored', {'message': 'Snippet stored successfully'})
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    encrypted_code = encrypt_data(code, FERNET_KEY)
+    new_snippet = Snippet(user_slug=hashed_slug, title=title, code=encrypted_code)
+    db.session.add(new_snippet)
+    db.session.commit()
+    emit('snippet_stored', {'message': 'Snippet stored successfully'})
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('get_snippets')
 def handle_get_snippets(data):
-    user_slug = data.get('user')
+  user_slug = data.get('user')
 
-    if user_slug:
-        try:
-            hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-            # Order by pinned status first, then by last_used timestamp
-            snippets = Snippet.query.filter_by(user_slug=hashed_slug).order_by(Snippet.pinned.desc(), Snippet.last_used.desc()).all()
+  if user_slug:
+    try:
+      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+      # Order by pinned status first, then by last_used timestamp
+      snippets = Snippet.query.filter_by(user_slug=hashed_slug).order_by(Snippet.pinned.desc(), Snippet.last_used.desc()).all()
 
-            snippets_list = [{
-              'id': snippet.id,
-              'title': snippet.title,
-              'code': decrypt_data(snippet.code, FERNET_KEY),
-              'pinned': snippet.pinned
-            } for snippet in snippets]
+      snippets_list = [{
+        'id': snippet.id,
+        'title': snippet.title,
+        'code': decrypt_data(snippet.code, FERNET_KEY),
+        'pinned': snippet.pinned
+      } for snippet in snippets]
 
-            emit('snippets_fetched', snippets_list)
-        except Exception as e:
-            print(f"Error in get_snippets event handler: {e}")
-            emit('error_occurred', {'message': 'An internal error occurred'})
-    else:
-        emit('error_occurred', {'message': 'Invalid input'})
+      emit('snippets_fetched', snippets_list)
+    except Exception as e:
+      print(f"Error in get_snippets event handler: {e}")
+      emit('error_occurred', {'message': 'An internal error occurred'})
+  else:
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('delete_snippet')
 def handle_delete_snippet(data):
@@ -216,17 +212,17 @@ def handle_delete_snippet(data):
   user_slug = data.get('user')
 
   if snippet_id and user_slug:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
 
-      if snippet:
-          db.session.delete(snippet)
-          db.session.commit()
-          emit('snippet_deleted', {'message': f'Snippet with ID {snippet_id} has been deleted'})
-      else:
-          emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
+    if snippet:
+      db.session.delete(snippet)
+      db.session.commit()
+      emit('snippet_deleted', {'message': f'Snippet with ID {snippet_id} has been deleted'})
+    else:
+        emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('edit_snippet_code')
 def handle_edit_snippet_code(data):
@@ -234,17 +230,17 @@ def handle_edit_snippet_code(data):
   new_code = data.get('new_code')
   user_slug = data.get('user')
   if snippet_id and new_code and user_slug:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
 
-      if snippet:
-          snippet.code = new_code
-          db.session.commit()
-          emit('snippet_code_edited', {'message': 'Snippet content has been edited'})
-      else:
-          emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
+    if snippet:
+      snippet.code = new_code
+      db.session.commit()
+      emit('snippet_code_edited', {'message': 'Snippet content has been edited'})
+    else:
+        emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('update_snippet_last_used')
 def handle_update_snippet_last_used(data):
@@ -252,17 +248,17 @@ def handle_update_snippet_last_used(data):
   user_slug = data.get('user')
 
   if snippet_id and user_slug:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    snippet = Snippet.query.filter_by(id=snippet_id, user_slug=hashed_slug).first()
 
-      if snippet:
-          snippet.last_used = datetime.utcnow()
-          db.session.commit()
-          emit('snippet_last_used_updated', {'message': 'Snippet last used updated'})
-      else:
-          emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
+    if snippet:
+      snippet.last_used = datetime.utcnow()
+      db.session.commit()
+      emit('snippet_last_used_updated', {'message': 'Snippet last used updated'})
+    else:
+        emit('error_occurred', {'message': f'Snippet with ID {snippet_id} not found or not owned by the user'})
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('toggle_pin_snippet')
 def handle_toggle_pin_snippet(data):
@@ -286,7 +282,7 @@ def database_loops():
   def remove_old_backups(max_age_days):
     now = time.time()
 
-    for file_path in glob.glob(f"backups/notes_backup_*.db"):
+    for file_path in glob.glob("backups/notes_backup_*.db"):
       file_timestamp = os.path.getmtime(file_path)
       file_age_days = (now - file_timestamp) / (60 * 60 * 24)
 

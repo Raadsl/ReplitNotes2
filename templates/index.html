@@ -87,7 +87,7 @@ socket.on('notes_fetched', function(notes) {
     notesList.empty();
     if(firstime && notes.length == 0) {
       firstime = false;
-      replit.messages.showNotice("Thanks for installing this extension! \nReplNotes successfully initialized for the first time on this Repl! Click on the text of a note to mark it as done, or press the delete button to delete it. You can also right click a note to edit it!", 7000)
+      replit.messages.showNotice("Thanks for installing this extension!", 3000)
     }
     notes.forEach(function (note) {
         const listItem = $('<li></li>');
@@ -346,7 +346,7 @@ $("#snippet-search").on("input", function () {
     </script>
 </head>
 <body>
-  <button id="mode-switch-btn" class="btn btn-secondary">Switch to Snippet Manager</button>
+  <button id="mode-switch-btn" class="btn btn-blue">Switch to Snippet Manager</button>
   <div class="heading-container">
     <div class="heading">
       <h1 class="main-heading">ReplNotes</h1>
