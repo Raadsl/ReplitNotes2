@@ -112,12 +112,14 @@ socket.on('notes_fetched', function(notes) {
     socket.emit('get_notes', { user_slug });
 });
   
-  $("#notes-list").on('click', '.delete-note', function() {
-      const noteId = $(this).data('id');
-      socket.emit('delete_note', { user_slug: user_slug, note_id: noteId });
-      replit.messages.showError("Note deleted", 800)
-      socket.emit('get_notes', { user_slug });
-  });
+$("#notes-list").on('click', '.delete-note', function() {
+    const noteId = $(this).data('id');
+    if (confirm("Are you sure you want to delete this note? This cannot be undone.")) {
+        socket.emit('delete_note', { user_slug: user_slug, note_id: noteId });
+        replit.messages.showError("Note deleted", 800);
+        socket.emit('get_notes', { user_slug });
+    }
+});
 function handleNoteTextRightClick(event, noteText) {
   event.preventDefault();
   const contextMenu = document.getElementById("context-menu");
@@ -287,10 +289,12 @@ $("#snippets-list").on('click', '.snippet-code', function() {
 });
 
 $("#snippets-list").on('click', '.delete-snippet', function() {
-  const snippetId = $(this).data('id');
-  socket.emit('delete_snippet', { user: user, snippet_id: snippetId });
-  replit.messages.showError("Snippet deleted", 800)
-  socket.emit('get_snippets', { user });
+    const snippetId = $(this).data('id');
+    if (confirm("Are you sure you want to delete this snippet? This cannot be undone.")) {
+        socket.emit('delete_snippet', { user: user, snippet_id: snippetId });
+        replit.messages.showError("Snippet deleted", 800);
+        socket.emit('get_snippets', { user });
+    }
 });
 
 socket.on("snippet_title_edited", function (data) {
@@ -370,7 +374,7 @@ $("#snippet-search").on("input", function () {
     </form>
     <hr>
     <div>
-        <input type="text" id="snippet-search" placeholder="Search snippets... (WIP)" />
+        <input class='hidden' type="text" id="snippet-search" placeholder="Search snippets... (WIP)" />
     </div>
     <ul id="notes-list" class="list-container"></ul>
     <ul id="snippets-list" class="list-container hidden"></ul>

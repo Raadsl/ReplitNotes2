@@ -6,18 +6,44 @@ from flask_socketio import SocketIO, emit
 from gevent.pywsgi import WSGIServer
 from geventwebsocket.handler import WebSocketHandler
 from datetime import datetime
-import hashlib
+import hashlib,time,shutil,glob
 from random import randint
+from cryptography.fernet import Fernet
+import threading
+
 
 
 app = Flask(__name__)
-CORS(app, origins=["*"])
-
+CORS(app, origins=["https://replit.com"])
 app.config['SECRET_KEY'] = os.environ["SECRET_KEY"]
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///notes.db'
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['REMEMBER_COOKIE_SECURE'] = True
 db = SQLAlchemy(app)
-socketio = SocketIO(app, cors_allowed_origins="*", allow_unsafe_werkzeug=True)
+import logging
 
+class CustomLogFilter(logging.Filter):
+  def filter(self, record):
+    if "Sending packet MESSAGE" in record.getMessage():
+      return False
+    return True
+logger = logging.getLogger("engineio.server")
+logger.addFilter(CustomLogFilter())
+socketio = SocketIO(app, cors_allowed_origins="*", allow_unsafe_werkzeug=True, max_http_buffer_size=1000000, logger=logger)
+FERNET_KEY = os.environ["FERNET_KEY"].encode('utf-8')
+
+def generate_fernet_key():
+    return Fernet.generate_key()
+
+def encrypt_data(data, key):
+    f = Fernet(key)
+    return f.encrypt(data.encode('utf-8'))
+
+def decrypt_data(data, key):
+    f = Fernet(key)
+    if not isinstance(data, bytes):
+        data = data.encode('utf-8')
+    return f.decrypt(data).decode('utf-8')
 
 def hash_user_slug(user_slug, salt):
   hasher = hashlib.sha256()
@@ -61,8 +87,8 @@ def handle_store_note(data):
 
   if user_slug and note:
       hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      encoded_note = base64.b64encode(note.encode('utf-8')).decode('utf-8') # base64 isn't for security but incase someone injects some crypto url and the repl will freeze by replit;
-      new_note = Note(user_slug=hashed_slug, note_content=encoded_note)
+      encrypted_note = encrypt_data(note, FERNET_KEY)
+      new_note = Note(user_slug=hashed_slug, note_content=encrypted_note)
       db.session.add(new_note)
       db.session.commit()
       emit('note_stored', {'message': 'Note stored successfully'})
@@ -79,9 +105,9 @@ def handle_get_notes(data):
 
      
       notes_list = [{
-          'id': note.id,
-          'note': base64.b64decode(note.note_content.encode('utf-8')).decode('utf-8'),
-          'done': note.done
+        'id': note.id,
+        'note': decrypt_data(note.note_content, FERNET_KEY),
+        'done': note.done
       } for note in notes]
       emit('notes_fetched', notes_list)
   else:
@@ -153,7 +179,8 @@ def handle_store_snippet(data):
 
   if user_slug and title and code:
       hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      new_snippet = Snippet(user_slug=hashed_slug, title=title, code=code)
+      encrypted_code = encrypt_data(code, FERNET_KEY)
+      new_snippet = Snippet(user_slug=hashed_slug, title=title, code=encrypted_code)
       db.session.add(new_snippet)
       db.session.commit()
       emit('snippet_stored', {'message': 'Snippet stored successfully'})
@@ -171,10 +198,10 @@ def handle_get_snippets(data):
             snippets = Snippet.query.filter_by(user_slug=hashed_slug).order_by(Snippet.pinned.desc(), Snippet.last_used.desc()).all()
 
             snippets_list = [{
-                'id': snippet.id,
-                'title': snippet.title,
-                'code': snippet.code,
-                'pinned': snippet.pinned
+              'id': snippet.id,
+              'title': snippet.title,
+              'code': decrypt_data(snippet.code, FERNET_KEY),
+              'pinned': snippet.pinned
             } for snippet in snippets]
 
             emit('snippets_fetched', snippets_list)
@@ -256,10 +283,39 @@ def handle_toggle_pin_snippet(data):
   else:
     emit('error_occurred', {'message': 'Invalid input'})
 
+def database_loops():
+  def remove_old_backups(max_age_days):
+    now = time.time()
+
+    for file_path in glob.glob(f"backups/notes_backup_*.db"):
+      file_timestamp = os.path.getmtime(file_path)
+      file_age_days = (now - file_timestamp) / (60 * 60 * 24)
+
+      if file_age_days > max_age_days:
+        try:
+          os.remove(file_path)
+          print(f"Removed old backup: {file_path}")
+        except Exception as e:
+          print(f"Error removing old backup {file_path}: {e}")
+  def backup_database():
+    try:
+      timestamp = time.strftime('%Y%m%d_%H%M%S')
+      backup_path = f'backups/notes_backup_{timestamp}.db'
+      os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+      shutil.copyfile('instance/notes.db', backup_path)
+      print(f"Database backup created at {backup_path}")
+    except Exception as e:
+      print(f"Error creating database backup: {e}")
+  while True:
+    remove_old_backups(7)
+    time.sleep(60 * 60 * 24) # day hour
+    backup_database()
 
 if __name__ == "__main__":
   with app.app_context():
     db.create_all()
+  loop_thread = threading.Thread(target=database_loops, daemon=True)
+  loop_thread.start()
   now = datetime.now()
   current_time = now.strftime("%H:%M:%S")
   print(f"Running! Started at {current_time}")
