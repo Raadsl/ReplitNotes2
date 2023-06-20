@@ -49,7 +49,7 @@
 (async () => {
   function updateNotes() {
     socket.emit('get_notes', { user_slug });
-    setTimeout(updateNotes, 1672);
+    setTimeout(updateNotes, 10000);
 
   }
     const user_slug = await getUserSlug();
@@ -103,13 +103,16 @@ socket.on('notes_fetched', function(notes) {
             handleNoteTextRightClick(e, $(this));
         });
     });
+  
 });
 
  $("#notes-list").on('click', '.note-text', function() {
-    const noteId = $(this).data('id');
-    const isDone = $(this).data('done') === 'true'; 
-    socket.emit('mark_note', { user_slug: user_slug, note_id: noteId, is_done: !isDone });
-    socket.emit('get_notes', { user_slug });
+  const noteId = $(this).data('id');
+  const isDone = $(this).data('done');
+  console.log(isDone.toString())
+  socket.emit('mark_note', { user_slug: user_slug, note_id: noteId, is_done: !isDone });
+  replit.messages.showConfirm("Note updated", 700);
+  socket.emit('get_notes', { user_slug });
 });
   
 $("#notes-list").on('click', '.delete-note', function() {
@@ -270,6 +273,7 @@ socket.on('snippets_fetched', function(snippets) {
     listItem.append('<button class="toggle-pin-snippet align-middle" data-id="' + snippet.id + '">' + (snippet.pinned ? 'Unpin' : 'Pin') + '</button>'); // Add the pin button
     snippetsList.append(listItem);
   });
+  filterSnippets();
 });
   
 $("#snippets-list").on('click', '.toggle-pin-snippet', function() {
@@ -309,7 +313,7 @@ socket.on("snippet_pin_toggled", function (data) {
 
 function updateSnippets() {
   socket.emit('get_snippets', { user });
-  setTimeout(updateSnippets, 1672);
+  setTimeout(updateSnippets, 5000);
 }
 $("#mode-switch-btn").on('click', function() {
   const currentMode = $(this).text();
@@ -397,19 +401,17 @@ $("#snippet-search").on("input", function () {
   <script>
     
 function filterSnippets() {
-  const searchInput = $("#snippet-search");
-  const searchText = searchInput.val().toLowerCase();
+  const searchText = $("#snippet-search").val().toLowerCase();
 
-  $(".snippet").each(function () {
-      const snippetTitle = $(this).find(".snippet-title").text().toLowerCase();
-      const snippetCode = $(this).find(".snippet-code").text().toLowerCase();
-      const searchFilter = $("#snippet-search").val().toLowerCase();
+  $("#snippets-list li").each(function () {
+    const snippetTitle = $(this).find(".snippet-title").text().toLowerCase();
+    const snippetCode = $(this).find(".snippet-code").text().toLowerCase();
 
-      if (note.note.toLowerCase().includes(searchFilter)) {
-          $(this).show();
-      } else {
-          $(this).hide();
-      }
+    if (snippetTitle.includes(searchText) || snippetCode.includes(searchText)) {
+      $(this).show();
+    } else {
+      $(this).hide();
+    }
   });
 }
 

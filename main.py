@@ -138,17 +138,16 @@ def handle_mark_note(data):
   user_slug = data.get('user_slug')
   
   if note_id is not None and is_done is not None and user_slug:
-      hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
-      note = Note.query.filter_by(id=note_id, user_slug=hashed_slug).first()
-
-      if note:
-          note.done = is_done
-          db.session.commit()
-          emit('note_marked', {'message': f'Note with ID {note_id} has been marked'})
-      else:
-          emit('error_occurred', {'message': f'Note with ID {note_id} not found or not owned by the user'})
+    hashed_slug = hash_user_slug(user_slug, USER_SLUG_SALT)
+    note = Note.query.filter_by(id=note_id, user_slug=hashed_slug).first()
+    if note:
+      note.done = is_done
+      db.session.commit()
+      emit('note_marked', {'message': f'Note with ID {note_id} has been marked'})
+    else:
+      emit('error_occurred', {'message': f'Note with ID {note_id} not found or not owned by the user'})
   else:
-      emit('error_occurred', {'message': 'Invalid input'})
+    emit('error_occurred', {'message': 'Invalid input'})
 
 @socketio.on('edit_note')
 def handle_edit_note(data):
