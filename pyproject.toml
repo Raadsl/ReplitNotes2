@@ -15,6 +15,7 @@ Flask-SocketIO = "^5.3.4"
 gevent = "^22.10.2"
 gevent-websocket = "^0.10.1"
 Flask-Cors = "^3.0.10"
+gsocketpool = "^0.1.6"
 
 [tool.poetry.dev-dependencies]
 debugpy = "^1.6.2"

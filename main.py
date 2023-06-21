@@ -10,7 +10,8 @@ import hashlib,time,shutil,glob
 from random import randint
 from cryptography.fernet import Fernet
 import threading
-
+import time
+from collections import deque
 
 app = Flask(__name__)
 CORS(app, origins=["https://replit.com"])
@@ -71,9 +72,29 @@ def index():
 def manifest():
   return send_file("extension.json")
 
+
+
+connection_limit = 20
+time_interval = 60
+rate_limiter = deque()
+
 @socketio.on('connect')
 def handle_connect():
-  emit('connected', {'data': 'Connected'})
+    global rate_limiter
+
+    current_time = time.time()
+
+    # Remove connections older than the time interval
+    while rate_limiter and rate_limiter[0] < current_time - time_interval:
+        rate_limiter.popleft()
+
+    # Check the connection limit
+    if len(rate_limiter) < connection_limit:
+        rate_limiter.append(current_time)
+        emit('connected', {'data': 'Connected'})
+    else:
+        # Connection limit reached, send an error message
+        emit('error_occurred', {'message': 'Connection limit reached. Please try again later.'})
 
 
 @socketio.on('store_note')
@@ -302,7 +323,7 @@ def database_loops():
     except Exception as e:
       print(f"Error creating database backup: {e}")
   while True:
-    remove_old_backups(7)
+    remove_old_backups(1)
     time.sleep(60 * 60 * 24) # day hour
     backup_database()
 

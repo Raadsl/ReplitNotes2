@@ -280,6 +280,17 @@ docs = ["sphinx", "docutils (<0.18)"]
 test = ["objgraph", "psutil"]
 
 [[package]]
+name = "gsocketpool"
+version = "0.1.6"
+description = "A simple connection pool for gevent"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+gevent = "*"
+
+[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -766,7 +777,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.10.0,<3.11"
-content-hash = "a4793a07160c086fbcaf3a7f31273a2b9d8ae3364fcde8b29923b4d7461925a5"
+content-hash = "6ea65a13af5128121b4dd5dc3740659251d8448264342e47adf4ba35851f0ad0"
 
 [metadata.files]
 aiohttp = []
@@ -791,6 +802,7 @@ frozenlist = []
 gevent = []
 gevent-websocket = []
 greenlet = []
+gsocketpool = []
 idna = []
 iso8601 = []
 itsdangerous = []

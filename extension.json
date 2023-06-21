@@ -1,13 +1,13 @@
 {
-    "name": "ReplitNotes",
-    "description": "Store notes and code snippets in your Repl, but without taking up space in your repl!",
+    "name": "ReplitNotes2",
+    "description": "Store notes and code snippets in your Repl, but without taking up space, at all!",
     "version": "0",
     "tags": ["utility", "notes", "todo", "QOL", "Raadsel", "tasks", "todo extension 2", "secure"],
     "icon": "static/icons/icon.png",
-    "website": "https://github.com/Raadsl/ReplitNotes",
-    "longDescription": "Keep track with what you still need to do! (probably a lot). ReplitNotes is a sequel to the Todo Extension from me. It has user-wide code snippets, a nicer UI, works better, and doesn't create files in your repl. The data gets stored outside of your repl. That's wayy better then before, doesn't take up any bytes for you, and your content is secure!!\n\nPlease don't store sensitive information since it's not 100% private. Your username and repl slug get hashed, and your snippets and notes get encrypted. So it's pretty safe, but still don't share secret keys!",
+    "website": "https://github.com/Raadsl/ReplitNote2s",
+    "longDescription": "Keep track with what you still need to do! (probably a lot). ReplitNotes2 is a sequel to the ReplitNotes extension from me, but this one doesn't use localStorage. It has user-wide code snippets, a nicer UI, works better, and doesn't create files in your repl. The data gets stored outside of your repl, in a database. That's wayy better then before, doesn't take up any bytes for you, and your content is secure!! This way you can use the same notes and snippets across multiple browsers and devices.\n\nUsage: Click a snippet to copy it, right click it to edit it. Click on a note to mark it as done, do it again to undo it. The rest speaks for itself using the buttons.\n\nPlease don't store sensitive information since it's not 100% private. Your username and repl slug get hashed, and your snippets and notes get encrypted. So it's pretty safe, but still don't share secret keys!.",
   "tools": [
-	  {"name": "ReplNotes", "handler":"/", "icon":"static/icons/icon.svg"}
+	  {"name": "ReplNotes2", "handler":"/", "icon":"static/icons/icon.svg"}
   ],
   "coverImages": [
     {
